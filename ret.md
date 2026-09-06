@@ -1,6 +1,6 @@
 # RET — Timing Evidence Report
 
-**Team:** Juan Felipe Pachon Restrepo · **Boards:** Aun por decidir(ESP 32 C6 O S3) · **Living** document: updated
+**Team:** Juan Felipe Pachon Restrepo · **Boards:** Aun por decidir (ESP 32 C6 O S3) · **Living** document: updated
 every week; handed in at the workshop (week 8) and at the close (week 16).
 House rule: *"show me the trace"* — every timing claim cites a measurement.
 
