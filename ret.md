@@ -38,8 +38,6 @@ Each entry cites the `REQ`(s) it verifies.
 
 ### Week 2 — superloop baseline (C0116-DK)
 
-### Week 2 — superloop baseline (C0116-DK)
-
 #### Diagrama de flujo (Task A)
 
 ```mermaid
@@ -167,10 +165,6 @@ batches=0 backlog_peak=440
 Al ejecutar `calib`, `task_console()` bloquea el superloop dentro de `cmd_calib()` ($\approx 1000 \text{ rondas} \times 400\ \mu\text{s}$ de `k_busy_wait`), impidiendo que se drene `ticks_pending`: el backlog salta de $30$ a $440$ ticks y el jitter de `instr_samp` pasa de $\approx 22.6\text{ ms}$ a $\approx 437.6\text{ ms}$, consistente entre analizador y firmware.
 
 ---
-
-#### Lectura de una línea
-
-**Lectura:** Con caché activa el superloop cumple 1 kHz con jitter de orden decenas de ms (dominado por el peor pase del `while(1)`, no por el ISR); desactivar la caché añade $\approx 1.7\text{ ms}$ de jitter (costo del ART accelerator); y el comando bloqueante `calib` degrada el jitter en dos órdenes de magnitud ($\approx 437\text{ ms}$), mostrando el límite del superloop ante una tarea firm mal comportada.
 
 ### Week 3 — S3 baseline and silicon comparison
 …
