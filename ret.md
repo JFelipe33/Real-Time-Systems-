@@ -75,10 +75,10 @@ flowchart TD
 | **Jitter de muestreo con el comando bloqueante activo** | $437588\ \mu\text{s}$ | Comparar con el jitter base |
 | **`backlog_peak`, en reposo $\rightarrow$ durante el comando bloqueante** | $30 \rightarrow 440$ ticks | Misma situación, medida por el firmware |
 
-*   **Fórmulas usadas:**
-    *   $\text{Jitter máximo} = \text{Max} - \text{nominal } (1000\ \mu\text{s})$
-    *   $\text{Latencia ISR} = \Delta t \text{ entre flancos de CH0 y CH4 (marcador de tiempo)}$
-    *   $\text{Consistencia firmware/analizador} \approx \texttt{backlog\_peak} \times 1\text{ ms}$
+* **Fórmulas usadas:**
+  * Jitter máximo = Max − nominal ($1000\ \mu\text{s}$)
+  * Latencia ISR = $\Delta t$ entre flancos de CH0 y CH4 (marcador de tiempo)
+  * Consistencia firmware/analizador $\approx$ `backlog_peak` $\times 1\text{ ms}$
 
 ---
 
