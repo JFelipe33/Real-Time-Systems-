@@ -34,8 +34,6 @@ system shall <response> within <deadline>*) — then the task that implements th
 
 ## 3. Evidence by week
 
-Each entry cites the `REQ`(s) it verifies.
-
 ### Week 2 — superloop baseline (C0116-DK)
 
 #### Diagrama de flujo (Task A)
@@ -86,12 +84,8 @@ flowchart TD
 
 #### Captura base: cache ON (Task B)
 
-<p align="center">
-  <img src="logic1.png" alt="Captura 1" width="48%" />
-  <img src="logic2.png" alt="Captura 2" width="48%" />
-  <br>
-  <em>Figura 1: Capturas del analizador lógico: ventana completa de 30 s, CH0 (<code>instr_samp</code>), caché activa.</em>
-</p>
+<img width="1600" height="850" alt="logic1" src="https://github.com/user-attachments/assets/f6b55365-2ad4-47e9-89ff-0390e9fe7083" />
+<img width="1600" height="850" alt="logic2" src="https://github.com/user-attachments/assets/05bd9e11-39a0-439b-b4e7-e639f78e2170" />
 
 ##### Estadísticas de periodo del canal CH0 (`instr_samp`), captura de 30 s
 
@@ -105,19 +99,15 @@ flowchart TD
 | SDev | $1045.42\ \mu\text{s}$ | **Max** | **$23577.75\ \mu\text{s}$** |
 | Count | $30197$ | | |
 
-![Marcador de tiempo](logic4.png)
+<img width="1600" height="850" alt="logic4" src="https://github.com/user-attachments/assets/8659115a-4b3f-4c05-ae9e-d697fdeb1cd2" />
 *Figura 2: Marcador de tiempo entre CH0 y CH4: $\Delta t = 14.5\ \mu\text{s}$ (latencia ISR $\rightarrow$ atención del superloop).*
 
 ---
 
 #### Rebuild cache OFF (Task B)
 
-<p align="center">
-  <img src="logic5.png" alt="Captura 1" width="48%" />
-  <img src="logic6.png" alt="Captura 2" width="48%" />
-  <br>
-  <em>Figura 3: Capturas del analizador lógico: ventana completa de 30 s, CH0 (<code>instr_samp</code>), caché desactivada.</em>
-</p>
+<img width="1600" height="950" alt="logic5" src="https://github.com/user-attachments/assets/113af4f2-b065-4bda-8b37-c9d1fafc29c8" />
+<img width="1600" height="950" alt="logic6" src="https://github.com/user-attachments/assets/abf8d943-f690-4099-8494-55bc11ffcbd3" />
 
 ##### Estadísticas de periodo del canal CH0 (`instr_samp`), captura de 30 s, caché desactivada
 
@@ -135,7 +125,7 @@ flowchart TD
 
 #### calib activo (Task C)
 
-![Captura calib](logic7.png)
+<img width="1600" height="950" alt="logic7" src="https://github.com/user-attachments/assets/55df2670-c7d8-451a-96c7-6f80ee65e436" />
 *Figura 4: Captura del analizador lógico durante el disparo de `calib`, CH0 (`instr_samp`).*
 
 ```text
@@ -162,7 +152,7 @@ batches=0 backlog_peak=440
 | SDev | $3282.80\ \mu\text{s}$ | **Max** | **$438588.31\ \mu\text{s}$** |
 | Count | $20087$ | | |
 
-Al ejecutar `calib`, `task_console()` bloquea el superloop dentro de `cmd_calib()` ($\approx 1000 \text{ rondas} \times 400\ \mu\text{s}$ de `k_busy_wait`), impidiendo que se drene `ticks_pending`: el backlog salta de $30$ a $440$ ticks y el jitter de `instr_samp` pasa de $\approx 22.6\text{ ms}$ a $\approx 437.6\text{ ms}$, consistente entre analizador y firmware.
+La tarea que sufre es `task_sampling()` (y por extensión `task_control()`, que depende de ella): mientras `cmd_calib()` ejecuta sus 1000 rondas de `k_busy_wait(400)` dentro de `task_console()` (`main.c`, función `cmd_calib`), el `while(1)` del superloop no vuelve a pasar por el bloque que drena `ticks_pending`, así que los 1 kHz ticks generados por `tick_isr()` se acumulan sin ser atendidos. La causa raíz no es la interrupción, sino que el superloop no tiene forma de interrumpir una tarea polled a media ejecución: `calib` es bloqueante y monopoliza el único hilo de ejecución hasta terminar sus 1000 rondas ($\approx 400\ \mu\text{s} \times 1000 \approx 400\text{ ms}$ sólo en `k_busy_wait`, que coincide con los $\approx 437\text{ ms}$ medidos).
 
 ---
 
