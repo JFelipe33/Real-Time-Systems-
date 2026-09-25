@@ -36,7 +36,9 @@ system shall <response> within <deadline>*) — then the task that implements th
 
 Each entry cites the `REQ`(s) it verifies.
 
-### Week 2 — superloop baseline (Nucleo-L476RG)
+### Week 2 — superloop baseline (C0116-DK)
+
+%% ---- Diagrama de flujo (Task A) ----
 
 \begin{center}
 
@@ -149,6 +151,8 @@ Each entry cites the `REQ`(s) it verifies.
 
 \end{center}
 
+%% ---- Tabla resumen + fórmulas (Task B/C) ----
+
 \begin{table}[H]
 \centering
 \caption{Resumen de mediciones del superloop}
@@ -179,7 +183,7 @@ Fórmulas usadas: Jitter máximo $=$ Max $-$ nominal (1000 $\mu$s); Latencia ISR
 $=\Delta t$ entre flancos de CH0 y CH4 (marcador de tiempo); consistencia
 firmware/analizador $\approx$ \texttt{backlog\_peak} $\times$ 1 ms.
 
-<!-- Captura base: cache ON -->
+%% ---- Captura base: cache ON (Task B) ----
 
 \begin{figure}[H]
 \centering
@@ -230,7 +234,7 @@ Count & 30197 & & \\
 \label{fig:isr_latency}
 \end{figure}
 
-<!-- Rebuild cache OFF -->
+%% ---- Rebuild cache OFF (Task B) ----
 
 \begin{figure}[H]
 \centering
@@ -274,7 +278,7 @@ Count & 30219 & & \\
 \end{tabular}
 \end{table}
 
-<!-- calib activo -->
+%% ---- calib activo (Task C) ----
 
 \begin{figure}[H]
 \centering
@@ -326,15 +330,16 @@ de \texttt{cmd\_calib()} ($\approx 1000$ rondas $\times$ 400 $\mu$s de
 backlog salta de 30 a 440 ticks y el jitter de \texttt{instr\_samp} pasa de
 $\approx 22.6$ ms a $\approx 437.6$ ms, consistente entre analizador y firmware.
 
-**Lectura:** con caché activa el superloop cumple 1 kHz con jitter de orden
-decenas de ms (dominado por el peor pase del `while(1)`, no por el ISR);
-desactivar la caché añade ≈1.7 ms de jitter (costo del ART accelerator); y el
-comando bloqueante `calib` degrada el jitter en dos órdenes de magnitud
-(≈437 ms), mostrando el límite del superloop ante una tarea firm mal
-comportada.
+%% ---- Lectura de una línea ----
+
+\textbf{Lectura:} con caché activa el superloop cumple 1 kHz con jitter de
+orden decenas de ms (dominado por el peor pase del \texttt{while(1)}, no por el
+ISR); desactivar la caché añade $\approx 1.7$ ms de jitter (costo del ART
+accelerator); y el comando bloqueante \texttt{calib} degrada el jitter en dos
+órdenes de magnitud ($\approx 437$ ms), mostrando el límite del superloop ante
+una tarea firm mal comportada.
 
 ### Week 3 — S3 baseline and silicon comparison
-
 …
 
 ## 4. Schedulability analysis
