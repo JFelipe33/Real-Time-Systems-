@@ -13,19 +13,21 @@ system shall <response> within <deadline>*) — then the task that implements th
 |---|---|
 | REQ-CTRL-01 | While the system is irrigating, the control loop shall run every 10 ms (deadline = period). |
 | REQ-CTRL-02 | When pressure exceeds the overpressure threshold, the system shall close the valve within 5 ms. |
-| REQ-SAMP-01 | While the system is operating, the sampling task shall execute every 1 ms with jitter bounded within <X> µs. |
-| REQ-CONS-01 | When a console command is received, the system shall respond within <Y> ms or discard it as stale. |
+| REQ-SAMP-01 | While the system is operating, the sampling task shall execute every 1 ms with jitter bounded within 22578 µs. |
+| REQ-CONS-01 | When a console command is received, the system shall respond within 50 ms or discard it as stale. |
 | REQ-TEL-01 | While the system is irrigating, the telemetry task shall transmit a CSV line every 1000 ms. |
 | REQ-FLOW-01 | While flow pulses accumulate, the system shall compute the flow batch every 100 pulses without blocking the sampling task. |
+| REQ-DISP-01 | While the system is operating, the display task shall refresh the HMI every 500 ms. |
 
 | Task | Req. | Type (H/F/S) | Period | Deadline | Measured C_i | How it was measured |
 |---|---|---|---|---|---|---|
-| Control loop | REQ-CTRL-01 | Hard | 10 ms | = T | ____ | <GPIO + analyzer / trace> |
-| Overpressure e-stop | REQ-CTRL-02 | Hard | aperiodic | 5 ms | ____ | <GPIO + analyzer / trace> |
-| Sampling | REQ-SAMP-01 | Hard | 1 ms | = T | ____ | <GPIO + analyzer / trace> |
-| Console | REQ-CONS-01 | Firm | aperiodic | ____ | ____ | <GPIO + analyzer / trace> |
-| Telemetry | REQ-TEL-01 | Soft | 1000 ms | = T | ____ | <GPIO + analyzer / trace> |
-| Flow batch | REQ-FLOW-01 | — | ~100 ms | ____ | ____ | <GPIO + analyzer / trace> |
+| Control loop | REQ-CTRL-01 | Hard | 10 ms | = T | 2.438 µs | GPIO CH1 (`instr_ctrl`) + logic analyzer |
+| Overpressure e-stop | REQ-CTRL-02 | Hard | aperiodic | 5 ms | 17.25 µs | GPIO CH0 (`instr_samp`) + logic analyzer |
+| Sampling | REQ-SAMP-01 | Hard | 1 ms | = T | 17.25 µs | GPIO CH0 (`instr_samp`) + logic analyzer |
+| Console | REQ-CONS-01 | Firm | aperiodic | 50 ms | 15.812 µs | GPIO CH2 (`instr_cons`) + logic analyzer |
+| Telemetry | REQ-TEL-01 | Soft | 1000 ms | = T | 6.23325 ms | GPIO CH3 (`instr_tele`) + logic analyzer |
+| Flow batch | REQ-FLOW-01 | Soft | ~100 ms | 100 ms | 196.813 µs | GPIO CH4 (`instr_flow`) + logic analyzer |
+| Display | REQ-DISP-01 | Soft | 500 ms | = T | 24.733063 ms | GPIO CH5 (`instr_disp`) + logic analyzer |
 
 ## 2. ADRs
 
@@ -98,6 +100,8 @@ flowchart TD
 | **Mean** | **$996.03\ \mu\text{s}$** | Freq | $1003.981\text{ Hz}$ |
 | SDev | $1045.42\ \mu\text{s}$ | **Max** | **$23577.75\ \mu\text{s}$** |
 | Count | $30197$ | | |
+
+<img width="1600" height="850" alt="logic3" src="https://github.com/user-attachments/assets/e59ebb69-bcb4-4ab8-8541-3cc9576447c7" />
 
 <img width="1600" height="850" alt="logic4" src="https://github.com/user-attachments/assets/8659115a-4b3f-4c05-ae9e-d697fdeb1cd2" />
 *Figura 2: Marcador de tiempo entre CH0 y CH4: $\Delta t = 14.5\ \mu\text{s}$ (latencia ISR $\rightarrow$ atención del superloop).*
