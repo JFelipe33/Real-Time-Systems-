@@ -1,6 +1,6 @@
 # RET — Timing Evidence Report
 
-**Team:** Juan Felipe Pachon Restrepo · **Boards:** Aun por decidir (ESP 32 C6 O S3) · **Living** document: updated
+**Team:** Juan Felipe Pachon Restrepo · **Boards:** ESP32-S3 (DevKitC-1) · **Living** document: updated
 every week; handed in at the workshop (week 8) and at the close (week 16).
 House rule: *"show me the trace"* — every timing claim cites a measurement.
 
@@ -66,24 +66,6 @@ flowchart TD
     flow --> polled
 ```
 
-#### Resumen de mediciones del superloop
-
-| Medición | Mi valor | Referencia |
-| :--- | :---: | :--- |
-| **Período real de muestreo (nominal 1 kHz): promedio** | $996.03\ \mu\text{s}$ | $1000\ \mu\text{s}$ |
-| **Jitter de muestreo: máximo durante $\ge 30$ s** | $22578\ \mu\text{s}$ | Registrar el valor obtenido; es la referencia del curso |
-| **Latencia ISR $\rightarrow$ atención del superloop (pulso de flujo)** | $14.5\ \mu\text{s}$ | Valor medido en el analizador lógico |
-| **Jitter de muestreo máximo con la caché de Flash desactivada** | $24239\ \mu\text{s}$ | La diferencia respecto al jitter base corresponde al acelerador ART |
-| **Jitter de muestreo con el comando bloqueante activo** | $437588\ \mu\text{s}$ | Comparar con el jitter base |
-| **`backlog_peak`, en reposo $\rightarrow$ durante el comando bloqueante** | $30 \rightarrow 440$ ticks | Misma situación, medida por el firmware |
-
-* **Fórmulas usadas:**
-  * Jitter máximo = Max − nominal ($1000\ \mu\text{s}$)
-  * Latencia ISR = $\Delta t$ entre flancos de CH0 y CH4 (marcador de tiempo)
-  * Consistencia firmware/analizador $\approx$ `backlog_peak` $\times 1\text{ ms}$
-
----
-
 #### Captura base: cache ON (Task B)
 
 <img width="1600" height="850" alt="logic1" src="https://github.com/user-attachments/assets/f6b55365-2ad4-47e9-89ff-0390e9fe7083" />
@@ -104,7 +86,6 @@ flowchart TD
 <img width="1600" height="850" alt="logic3" src="https://github.com/user-attachments/assets/e59ebb69-bcb4-4ab8-8541-3cc9576447c7" />
 
 <img width="1600" height="850" alt="logic4" src="https://github.com/user-attachments/assets/8659115a-4b3f-4c05-ae9e-d697fdeb1cd2" />
-*Figura 2: Marcador de tiempo entre CH0 y CH4: $\Delta t = 14.5\ \mu\text{s}$ (latencia ISR $\rightarrow$ atención del superloop).*
 
 ---
 
@@ -130,7 +111,6 @@ flowchart TD
 #### calib activo (Task C)
 
 <img width="1600" height="950" alt="logic7" src="https://github.com/user-attachments/assets/55df2670-c7d8-451a-96c7-6f80ee65e436" />
-*Figura 4: Captura del analizador lógico durante el disparo de `calib`, CH0 (`instr_samp`).*
 
 ```text
 t=23000 ... backlog=30
@@ -158,10 +138,107 @@ batches=0 backlog_peak=440
 
 La tarea que sufre es `task_sampling()` (y por extensión `task_control()`, que depende de ella): mientras `cmd_calib()` ejecuta sus 1000 rondas de `k_busy_wait(400)` dentro de `task_console()` (`main.c`, función `cmd_calib`), el `while(1)` del superloop no vuelve a pasar por el bloque que drena `ticks_pending`, así que los 1 kHz ticks generados por `tick_isr()` se acumulan sin ser atendidos. La causa raíz no es la interrupción, sino que el superloop no tiene forma de interrumpir una tarea polled a media ejecución: `calib` es bloqueante y monopoliza el único hilo de ejecución hasta terminar sus 1000 rondas ($\approx 400\ \mu\text{s} \times 1000 \approx 400\text{ ms}$ sólo en `k_busy_wait`, que coincide con los $\approx 437\text{ ms}$ medidos).
 
+#### Mediciones del superloop
+
+| Medición | Mi valor | Referencia |
+| :--- | :---: | :--- |
+| **Período real de muestreo (nominal 1 kHz): promedio** | $996.03\ \mu\text{s}$ | $1000\ \mu\text{s}$ |
+| **Jitter de muestreo: máximo durante $\ge 30$ s** | $22578\ \mu\text{s}$ | Registrar el valor obtenido; es la referencia del curso |
+| **Latencia ISR $\rightarrow$ atención del superloop (pulso de flujo)** | $14.5\ \mu\text{s}$ | Valor medido en el analizador lógico |
+| **Jitter de muestreo máximo con la caché de Flash desactivada** | $24239\ \mu\text{s}$ | La diferencia respecto al jitter base corresponde al acelerador ART |
+| **Jitter de muestreo con el comando bloqueante activo** | $437588\ \mu\text{s}$ | Comparar con el jitter base |
+| **`backlog_peak`, en reposo $\rightarrow$ durante el comando bloqueante** | $30 \rightarrow 440$ ticks | Misma situación, medida por el firmware |
+
+* **Fórmulas usadas:**
+  * Jitter máximo = Max − nominal ($1000\ \mu\text{s}$)
+  * Latencia ISR = $\Delta t$ entre flancos de CH0 y CH4 (marcador de tiempo)
+  * Consistencia firmware/analizador $\approx$ `backlog_peak` $\times 1\text{ ms}$
+
+
 ---
 
 ### Week 3 — S3 baseline and silicon comparison
-…
+
+#### Respuesta diff-stat y status (Task A)
+
+* La portabilidad del sistema al ESP32-S3 se realizó mediante archivos Devicetree overlay. La salida de git diff confirma que la migración no requirió modificar ninguna línea de código C de la aplicación:
+
+samples/rts/firmware/superloop/boards/esp32c6_devkitc_hpcore.overlay        |  60 +++++++++++++++++++++++++++
+ .../superloop/boards/esp32c6_devkitc_hpcore.overlay:Zone.Identifier         | Bin 0 -> 25 bytes
+ .../rts/firmware/superloop/boards/esp32s3_devkitc_esp32s3_procpu.overlay    |  62 ++++++++++++++++++++++++++++
+ samples/rts/firmware/superloop/boards/nucleo_l476rg.overlay                 |  56 +++++++++++++++++++++++++
+ samples/rts/firmware/superloop/boards/nucleo_l476rg.overlay:Zone.Identifier | Bin 0 -> 25 bytes
+ samples/rts/firmware/superloop/boards/stm32c0116_dk.overlay                 |  80 ++++++++++++++++++++++++++++++++++++
+ samples/rts/firmware/superloop/boards/stm32c0116_dk.overlay:Zone.Identifier | Bin 0 -> 25 bytes
+ 7 files changed, 258 insertions(+)
+
+* la consola serial del ESP32-S3 responde correctamente al comando status, validando el procesamiento de datos y la interacción del firmware:
+  
+ p=1490 mV sp=1500 mV duty=47% flow_x100=102 estop=0 batches=130 backlog_peak=4
+
+#### Mediciones y comparación de silicios (Task B)
+
+* Tiempos de ejecución individuales ($C_i$) en ESP32-S3
+
+| Tarea | Canal | Tiempo de ejecución ($C_i$) medido |
+| :--- | :--- | :--- |
+| Muestreo (`task_sampling`) | CH0 (`instr_samp`) | $2.688\ \mu\text{s}$ |
+| Control (`task_control`) | CH1 (`instr_ctrl`) | $0.312\ \mu\text{s}$ ($312\text{ ns}$) |
+| Consola (`task_console`) | CH2 (`instr_cons`) | $2.188\ \mu\text{s}$ |
+| Telemetría (`task_telemetry`) | CH3 (`instr_tele`) | $64.813\ \mu\text{s}$ |
+| Lote de flujo (`task_flow_batch`) | CH4 (`instr_flow`) | $2.438\ \mu\text{s}$ |
+| Pantalla (`task_display`) | CH5 (`instr_disp`) | $95.578\text{ ms}$ |
+
+* Estadísticas del canal CH0 (instr_samp), captura en reposo ($\ge 30\text{ s}$)
+
+<img width="1600" height="850" alt="s3 1" src="https://github.com/user-attachments/assets/704cf22c-f7ff-40e0-a790-b43ea9357d18" />
+
+Jitter máximo en reposo (CH0): $96079.06\ \mu\text{s} - 1000\ \mu\text{s} = 95079.06\ \mu\text{s}$ ($95.08\text{ ms}$)
+
+* Estadísticas del canal CH0 (instr_samp), captura con calib activo
+
+<img width="1600" height="850" alt="s3 2" src="https://github.com/user-attachments/assets/04d03d24-fdf8-4d14-a456-f3775022f041" />
+
+Jitter máximo con calib (CH0): $496628.44\ \mu\text{s} - 1000\ \mu\text{s} = 495628.44\ \mu\text{s}$ ($495.63\text{ ms}$)
+
+* Registro de consola serial durante la calib
+
+ht=55000 p_mv=1480 sp_mv=1500 duty=46 flow_x100=102 estop=0 backlog=96
+status
+p=1509 mV sp=1500 mV duty=46% flow_x100=102 estop=0 batches=577 backlog_peak=96
+calib
+calibrating zero-flow offset (1000 rounds)...
+calibration done
+t=62000 p_mv=1536 sp_mv=1500 duty=44 flow_x100=102 estop=0 backlog=496
+status
+p=1488 mV sp=1500 mV duty=46% flow_x100=102 estop=0 batches=661 backlog_peak=496 
+
+
+* Estadísticas del canal CH1 (instr_ctrl), calib activo
+
+| Parámetro | Valor | Parámetro | Valor |
+| :--- | :--- | :--- | :--- |
+| $\Delta T$ | $16.573440\text{ s}$ | $N_{\text{falling}}$ | $41$ |
+| $N_{\text{rising}}$ | $41$ | $f_{\text{min}}$ | $0.872\text{ Hz}$ |
+| $f_{\text{max}}$ | $11738.811\text{ Hz}$ | $f_{\text{mean}}$ | $3.552\text{ Hz}$ |
+| $T_{\text{std}}$ | $321.36\text{ ms}$ | Min | $85.19\ \mu\text{s}$ |
+| Mean | $281.56\text{ ms}$ | Freq | $3.552\text{ Hz}$ |
+| SDev | $321.36\text{ ms}$ | Max | $1.147232\text{ s}$ ($1147.23\text{ ms}$) |
+| Count | $40$ | | |
+
+* Tabla Comparativa de Resultados entre Silicios
+
+| Medición | L476RG (Semana 2) | S3 Superloop (Task B) | S3 + Sampling Thread (Task C) |
+| :--- | :--- | :--- | :--- |
+| Jitter máx. muestreo ($\ge 30\text{ s}$) | — | $22578\ \mu\text{s}$ | $95079\ \mu\text{s}$ |
+| Jitter máx. muestreo (calib activo) | — | $437588\ \mu\text{s}$ | $495628\ \mu\text{s}$ |
+| backlog_peak (calib activo) | — | $440\text{ ticks}$ | $496\text{ ticks}$ |
+| lat_peak_us (tick $\rightarrow$ thread) | — | — | — |
+| Período máx. de control (calib activo) | — | — | $1147.23\text{ ms}$ |
+
+* Análisis justificativo de la comparación entre silicios
+
+A pesar de que el ESP32-S3 opera a una frecuencia de reloj nominal de $240\text{ MHz}$ (tres veces superior a los $80\text{ MHz}$ del STM32L476RG), las métricas de jitter y latencia en el superloop empeoraron sensiblemente. Esto ocurre porque el ESP32-S3 ejecuta el código desde una memoria Flash SPI externa dependiente de memoria caché, lo que provoca penalizaciones significativas por fallos de caché (cache misses) durante la ejecución de subrutinas extensas como el redibujado de la pantalla ($C_{\text{disp}} \approx 95.58\text{ ms}$), a diferencia de la Flash interna con acelerador ART de latencia cero del STM32.
 
 ## 4. Schedulability analysis
 
