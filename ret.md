@@ -188,7 +188,7 @@ Jitter máximo con calib (CH0): $496628.44\ \mu\text{s} - 1000\ \mu\text{s} = 49
 * Registro de consola serial durante la calib
 
 ```text
-ht=55000 p_mv=1480 sp_mv=1500 duty=46 flow_x100=102 estop=0 backlog=96
+t=55000 p_mv=1480 sp_mv=1500 duty=46 flow_x100=102 estop=0 backlog=96
 status
 p=1509 mV sp=1500 mV duty=46% flow_x100=102 estop=0 batches=577 backlog_peak=96
 calib
