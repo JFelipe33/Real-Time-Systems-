@@ -211,6 +211,16 @@ p=1488 mV sp=1500 mV duty=46% flow_x100=102 estop=0 batches=661 backlog_peak=496
 | SDev | $321.36\text{ ms}$ | Max | $1.147232\text{ s}$ ($1147.23\text{ ms}$) |
 | Count | $40$ | | |
 
+* Preguntas
+
+**pregunta 1**:  El tiempo máximo en reposo cambió mucho entre chips. Al comparar `instr_tele` en ambas capturas, ¿qué diferencia de hardware lo explica? (`uart_stm32_poll_out` vs. `uart_esp32_poll_out`)
+
+El driver del STM32 (`uart_stm32_poll_out`) realiza una espera activa bloqueando la CPU por cada carácter transmitido, mientras que el del ESP32-S3 (`uart_esp32_poll_out`) deposita los datos de inmediato en la FIFO de hardware y retorna sin bloquear la ejecución.
+
+**pregunta 2** : El S3 corre a 240 MHz frente a los 80 MHz del L476, pero ejecuta desde una Flash SPI externa mediante caché. ¿En qué parte del RET se reflejan el reloj y la caché?
+
+La mayor frecuencia de reloj (240 MHz) reduce los tiempos mínimos y promedio de ejecución ($C_i$), mientras que la latencia y los fallos de la memoria caché externa provocan los picos máximos ($T_{\text{máx}}$) y el incremento del Jitter.
+
 * Tabla Comparativa de Resultados entre Silicios
 
 | Medición | L476RG Superloop (Semana 2) | ESP32-S3 Superloop | ESP32-S3 + Sampling Thread (Task C) |
@@ -220,10 +230,6 @@ p=1488 mV sp=1500 mV duty=46% flow_x100=102 estop=0 batches=661 backlog_peak=496
 | **`backlog_peak` (`calib` activo)** | $440\text{ ticks}$ | $496\text{ ticks}$ | — |
 | **`lat_peak_us` (`status` en consola)** | — | — | — |
 | **Período máx. control (`calib` activo)** | — | $1,147.23\text{ ms}$ | — |
-
-* Análisis justificativo de la comparación entre silicios
-
-A pesar de que el ESP32-S3 opera a una frecuencia de reloj nominal de $240\text{ MHz}$ (tres veces superior a los $80\text{ MHz}$ del STM32L476RG), las métricas de jitter y latencia en el superloop empeoraron sensiblemente. Esto ocurre porque el ESP32-S3 ejecuta el código desde una memoria Flash SPI externa dependiente de memoria caché, lo que provoca penalizaciones significativas por fallos de caché (cache misses) durante la ejecución de subrutinas extensas como el redibujado de la pantalla ($C_{\text{disp}} \approx 95.58\text{ ms}$), a diferencia de la Flash interna con acelerador ART de latencia cero del STM32.
 
 #### El primer hilo (Task C)
 
