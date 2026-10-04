@@ -203,6 +203,7 @@ Jitter máximo con calib (CH0): $496628.44\ \mu\text{s} - 1000\ \mu\text{s} = 49
 
 * Registro de consola serial durante la calib
 
+```text
 ht=55000 p_mv=1480 sp_mv=1500 duty=46 flow_x100=102 estop=0 backlog=96
 status
 p=1509 mV sp=1500 mV duty=46% flow_x100=102 estop=0 batches=577 backlog_peak=96
@@ -212,7 +213,7 @@ calibration done
 t=62000 p_mv=1536 sp_mv=1500 duty=44 flow_x100=102 estop=0 backlog=496
 status
 p=1488 mV sp=1500 mV duty=46% flow_x100=102 estop=0 batches=661 backlog_peak=496 
-
+```
 
 * Estadísticas del canal CH1 (instr_ctrl), calib activo
 
@@ -228,17 +229,67 @@ p=1488 mV sp=1500 mV duty=46% flow_x100=102 estop=0 batches=661 backlog_peak=496
 
 * Tabla Comparativa de Resultados entre Silicios
 
-| Medición | L476RG (Semana 2) | S3 Superloop (Task B) | S3 + Sampling Thread (Task C) |
-| :--- | :--- | :--- | :--- |
-| Jitter máx. muestreo ($\ge 30\text{ s}$) | — | $22578\ \mu\text{s}$ | $95079\ \mu\text{s}$ |
-| Jitter máx. muestreo (calib activo) | — | $437588\ \mu\text{s}$ | $495628\ \mu\text{s}$ |
-| backlog_peak (calib activo) | — | $440\text{ ticks}$ | $496\text{ ticks}$ |
-| lat_peak_us (tick $\rightarrow$ thread) | — | — | — |
-| Período máx. de control (calib activo) | — | — | $1147.23\text{ ms}$ |
+| Medición | L476RG Superloop (Semana 2) | ESP32-S3 Superloop | ESP32-S3 + Sampling Thread (Task C) |
+|---|:---:|:---:|:---:|
+| **Jitter máx. muestreo ($\ge 30\text{ s}$ reposo)** | $22,578\ \mu\text{s}$ | $95,079\ \mu\text{s}$ | — |
+| **Jitter máx. muestreo (`calib` activo)** | $437,588\ \mu\text{s}$ | $495,628\ \mu\text{s}$ | — |
+| **`backlog_peak` (`calib` activo)** | $440\text{ ticks}$ | $496\text{ ticks}$ | — |
+| **`lat_peak_us` (`status` en consola)** | — | — | — |
+| **Período máx. control (`calib` activo)** | — | $1,147.23\text{ ms}$ | — |
 
 * Análisis justificativo de la comparación entre silicios
 
 A pesar de que el ESP32-S3 opera a una frecuencia de reloj nominal de $240\text{ MHz}$ (tres veces superior a los $80\text{ MHz}$ del STM32L476RG), las métricas de jitter y latencia en el superloop empeoraron sensiblemente. Esto ocurre porque el ESP32-S3 ejecuta el código desde una memoria Flash SPI externa dependiente de memoria caché, lo que provoca penalizaciones significativas por fallos de caché (cache misses) durante la ejecución de subrutinas extensas como el redibujado de la pantalla ($C_{\text{disp}} \approx 95.58\text{ ms}$), a diferencia de la Flash interna con acelerador ART de latencia cero del STM32.
+
+#### El primer hilo (Task C)
+
+* Ejecución del comando status después de crear el hilo
+
+```text
+t=2000 p_mv=1504 sp_mv=1500 duty=45 flow_x100=102 estop=0 backlog=0
+status
+p=1497 mV sp=1500 mV duty=45% flow_x100=102 estop=0 batches=55 backlog_peak=0 lat_peak_us=7
+```
+
+* Estadísticas del canal CH0 (instr_samp), captura con calib activo
+
+<img width="1600" height="850" alt="s3 4" src="https://github.com/user-attachments/assets/d6f4cd41-0165-4fb4-84b3-6e50a1a830ed" />
+
+Jitter máximo en reposo y calib activo (CH0): $1003.00\ \mu\text{s} - 1000\ \mu\text{s} = 3.00\ \mu\text{s}$ 
+
+* Estadísticas del canal CH1 (instr_ctrl), calib activo
+
+<img width="1600" height="850" alt="s3 3" src="https://github.com/user-attachments/assets/7e12d0de-ee3e-46d9-abea-93f889a01944" />
+
+* Tabla de resultados finales
+
+| Medición | L476RG Superloop (Semana 2) | ESP32-S3 Superloop | ESP32-S3 + Sampling Thread (Task C) |
+|---|:---:|:---:|:---:|
+| **Jitter máx. muestreo ($\ge 30\text{ s}$ reposo)** | $22,578\ \mu\text{s}$ | $95,079\ \mu\text{s}$ | $3.00\ \mu\text{s}$ |
+| **Jitter máx. muestreo (`calib` activo)** | $437,588\ \mu\text{s}$ | $495,628\ \mu\text{s}$ | $3.00\ \mu\text{s}$ |
+| **`backlog_peak` (`calib` activo)** | $440\text{ ticks}$ | $496\text{ ticks}$ | $0\text{ ticks}$ |
+| **`lat_peak_us` (`status` en consola)** | — | — | $7\ \mu\text{s}$ |
+| **Período máx. control (`calib` activo)** | — | $1,147.23\text{ ms}$ | $400.57\text{ ms}$ |
+
+* Respuestas a las preguntas del Lab
+
+**Pregunta 1**: ¿El comando calib sigue arruinando el muestreo? ¿Y el control?.
+
+Muestreo: No, ya no lo arruina. Como el muestreo corre en un hilo separado de alta prioridad (SAMPLING_PRIO = 2), interrumpe a calib cada milisegundo sin perder ni retrasar ninguna muestra. En la señal se ve impecable a $1\text{ kHz}$
+
+Control: Sí, se sigue arruinando. La función de control se quedó ejecutando dentro de main(). Cuando se activa calib, el hilo main se queda bloqueado $400\text{ ms}$ sin poder atender el control, haciendo que el período se estire hasta esos $400.57\text{ ms}$.
+
+**Pregunta 2**: Identifica quién escribe y quién lee las variables compartidas (pressure_mv, estop, setpoint_mv) y explica por qué el código no falla a pesar de no usar mutexes.
+
+Quién escribe y lee cada una:
+
+pressure_mv: La escribe sampling_thread y la leen task_control, task_telemetry y la consola (en main).
+
+estop: La escriben sampling_thread y main (joystick / consola); la lee task_control (en main).
+
+setpoint_mv: La escribe main (joystick / consola) y la lee task_control (en main).
+
+No falla sin mutexes ya que en un procesador de 32 bits (como el ESP32-S3), leer o escribir una variable de 32 bits alineada en memoria toma un solo ciclo de reloj de hardware. Es una operación atómica natural: el sistema no puede pausar la CPU a "medio camino" de escribir el dato, así que nunca se leen valores corruptos.
 
 ## 4. Schedulability analysis
 
