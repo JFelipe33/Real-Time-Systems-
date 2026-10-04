@@ -68,8 +68,9 @@ flowchart TD
 
 #### Captura base: cache ON (Task B)
 
-<img width="1600" height="850" alt="logic1" src="https://github.com/user-attachments/assets/f6b55365-2ad4-47e9-89ff-0390e9fe7083" />
 <img width="1600" height="850" alt="logic2" src="https://github.com/user-attachments/assets/05bd9e11-39a0-439b-b4e7-e639f78e2170" />
+
+Jitter máximo cache ON (CH0): $23577.75\ \mu\text{s} - 1000\ \mu\text{s} = 22578\ \mu\text{s}$ 
 
 ##### Estadísticas de periodo del canal CH0 (`instr_samp`), captura de 30 s
 
@@ -83,34 +84,23 @@ flowchart TD
 | SDev | $1045.42\ \mu\text{s}$ | **Max** | **$23577.75\ \mu\text{s}$** |
 | Count | $30197$ | | |
 
-<img width="1600" height="850" alt="logic3" src="https://github.com/user-attachments/assets/e59ebb69-bcb4-4ab8-8541-3cc9576447c7" />
-
 <img width="1600" height="850" alt="logic4" src="https://github.com/user-attachments/assets/8659115a-4b3f-4c05-ae9e-d697fdeb1cd2" />
+
+Latencia ISR = $\Delta t$ entre flancos de CH0 y CH4
 
 ---
 
 #### Rebuild cache OFF (Task B)
 
-<img width="1600" height="950" alt="logic5" src="https://github.com/user-attachments/assets/113af4f2-b065-4bda-8b37-c9d1fafc29c8" />
 <img width="1600" height="950" alt="logic6" src="https://github.com/user-attachments/assets/abf8d943-f690-4099-8494-55bc11ffcbd3" />
 
-##### Estadísticas de periodo del canal CH0 (`instr_samp`), captura de 30 s, caché desactivada
-
-| Parámetro | Valor | Parámetro | Valor |
-| :--- | :--- | :--- | :--- |
-| $\Delta T$ | $30.108416\text{ s}$ | $N_{\text{falling}}$ | $30220$ |
-| $N_{\text{rising}}$ | $30220$ | $f_{\text{min}}$ | $39.621\text{ Hz}$ |
-| $f_{\text{max}}$ | $42553.191\text{ Hz}$ | $f_{\text{mean}}$ | $1003.706\text{ Hz}$ |
-| $T_{\text{std}}$ | $1.1157\text{ ms}$ | Min | $23.50\ \mu\text{s}$ |
-| **Mean** | **$996.31\ \mu\text{s}$** | Freq | $1003.706\text{ Hz}$ |
-| SDev | $1115.66\ \mu\text{s}$ | **Max** | **$25239.44\ \mu\text{s}$** |
-| Count | $30219$ | | |
-
----
+Jitter máximo cache OFF (CH0): $25239\ \mu\text{s} - 1000\ \mu\text{s} = 24239\ \mu\text{s}$ 
 
 #### calib activo (Task C)
 
 <img width="1600" height="950" alt="logic7" src="https://github.com/user-attachments/assets/55df2670-c7d8-451a-96c7-6f80ee65e436" />
+
+Jitter máximo calib activo (CH0): $438588.31\ \mu\text{s} - 1000\ \mu\text{s} = 437588\ \mu\text{s}$ 
 
 ```text
 t=23000 ... backlog=30
