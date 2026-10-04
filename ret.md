@@ -158,7 +158,7 @@ samples/rts/firmware/superloop/boards/esp32c6_devkitc_hpcore.overlay        |  6
 
 * la consola serial del ESP32-S3 responde correctamente al comando status, validando el procesamiento de datos y la interacción del firmware:
   
- p=1490 mV sp=1500 mV duty=47% flow_x100=102 estop=0 batches=130 backlog_peak=4
+ p=1490 mV sp=1500 mV duty=47% flow_x100=102 estop=0 batches=130 backlog_peak=96
 
 #### Mediciones y comparación de silicios (Task B)
 
