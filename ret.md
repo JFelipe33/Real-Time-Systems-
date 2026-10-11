@@ -146,7 +146,7 @@ La tarea que sufre es `task_sampling()` (y por extensión `task_control()`, que 
 #### Respuesta diff-stat y status (Task A)
 
 * La portabilidad del sistema al ESP32-S3 se realizó mediante archivos Devicetree overlay. La salida de git diff confirma que la migración no requirió modificar ninguna línea de código C de la aplicación:
-
+```text
 samples/rts/firmware/superloop/boards/esp32c6_devkitc_hpcore.overlay        |  60 +++++++++++++++++++++++++++
  .../superloop/boards/esp32c6_devkitc_hpcore.overlay:Zone.Identifier         | Bin 0 -> 25 bytes
  .../rts/firmware/superloop/boards/esp32s3_devkitc_esp32s3_procpu.overlay    |  62 ++++++++++++++++++++++++++++
@@ -155,11 +155,11 @@ samples/rts/firmware/superloop/boards/esp32c6_devkitc_hpcore.overlay        |  6
  samples/rts/firmware/superloop/boards/stm32c0116_dk.overlay                 |  80 ++++++++++++++++++++++++++++++++++++
  samples/rts/firmware/superloop/boards/stm32c0116_dk.overlay:Zone.Identifier | Bin 0 -> 25 bytes
  7 files changed, 258 insertions(+)
-
+```
 * la consola serial del ESP32-S3 responde correctamente al comando status, validando el procesamiento de datos y la interacción del firmware:
-  
+```text
  p=1490 mV sp=1500 mV duty=47% flow_x100=102 estop=0 batches=130 backlog_peak=96
-
+```
 #### Mediciones y comparación de silicios (Task B)
 
 * Tiempos de ejecución individuales ($C_i$) en ESP32-S3
@@ -177,13 +177,13 @@ samples/rts/firmware/superloop/boards/esp32c6_devkitc_hpcore.overlay        |  6
 
 <img width="1600" height="850" alt="s3 1" src="https://github.com/user-attachments/assets/704cf22c-f7ff-40e0-a790-b43ea9357d18" />
 
-Jitter máximo en reposo (CH0): $96079.06\ \mu\text{s} - 1000\ \mu\text{s} = 95079.06\ \mu\text{s}$ ($95.08\text{ ms}$)
+Jitter máximo en reposo (CH0): $96079\ \mu\text{s} - 1000\ \mu\text{s} = 95 079\ \mu\text{s}$
 
 * Estadísticas del canal CH0 (instr_samp), captura con calib activo
 
 <img width="1600" height="850" alt="s3 2" src="https://github.com/user-attachments/assets/04d03d24-fdf8-4d14-a456-f3775022f041" />
 
-Jitter máximo con calib (CH0): $496628.44\ \mu\text{s} - 1000\ \mu\text{s} = 495628.44\ \mu\text{s}$ ($495.63\text{ ms}$)
+Jitter máximo con calib (CH0): $496628\ \mu\text{s} - 1000\ \mu\text{s} = 495 628\ \mu\text{s}$
 
 * Registro de consola serial durante la calib
 
@@ -225,11 +225,11 @@ La mayor frecuencia de reloj (240 MHz) reduce los tiempos mínimos y promedio de
 
 | Medición | L476RG Superloop (Semana 2) | ESP32-S3 Superloop | ESP32-S3 + Sampling Thread (Task C) |
 |---|:---:|:---:|:---:|
-| **Jitter máx. muestreo ($\ge 30\text{ s}$ reposo)** | $22,578\ \mu\text{s}$ | $95,079\ \mu\text{s}$ | — |
-| **Jitter máx. muestreo (`calib` activo)** | $437,588\ \mu\text{s}$ | $495,628\ \mu\text{s}$ | — |
+| **Jitter máx. muestreo ($\ge 30\text{ s}$ reposo)** | $22578\ \mu\text{s}$ | $95 079\ \mu\text{s}$ | — |
+| **Jitter máx. muestreo (`calib` activo)** | $437588\ \mu\text{s}$ | $495 628\ \mu\text{s}$ | — |
 | **`backlog_peak` (`calib` activo)** | $440\text{ ticks}$ | $496\text{ ticks}$ | — |
 | **`lat_peak_us` (`status` en consola)** | — | — | — |
-| **Período máx. control (`calib` activo)** | — | $1,147.23\text{ ms}$ | — |
+| **Período máx. control (`calib` activo)** | — | $1147.23\text{ ms}$ | — |
 
 #### El primer hilo (Task C)
 
@@ -259,7 +259,7 @@ Jitter máximo en reposo y calib activo (CH0): $1003.00\ \mu\text{s} - 1000\ \mu
 | **Jitter máx. muestreo (`calib` activo)** | $437,588\ \mu\text{s}$ | $495,628\ \mu\text{s}$ | $3.00\ \mu\text{s}$ |
 | **`backlog_peak` (`calib` activo)** | $440\text{ ticks}$ | $496\text{ ticks}$ | $0\text{ ticks}$ |
 | **`lat_peak_us` (`status` en consola)** | — | — | $7\ \mu\text{s}$ |
-| **Período máx. control (`calib` activo)** | — | $1,147.23\text{ ms}$ | $400.57\text{ ms}$ |
+| **Período máx. control (`calib` activo)** | — | $1147.23\text{ ms}$ | $400.57\text{ ms}$ |
 
 * Respuestas a las preguntas del Lab
 
@@ -283,7 +283,7 @@ No falla sin mutexes ya que en un procesador de 32 bits (como el ESP32-S3), leer
 
 ### Week 4 — The full migration and the A/B
 
-#### Completar la migracion (Task A)
+#### Completar la migración (Task A) y Apilar marcas de marea alta (Task D)
 
 ```text
 status
@@ -310,6 +310,7 @@ Thread analyze:
  ISR0                : STACK: unused   64 usage  448 /  512 ( 87 %); CPU:   0 %
                      : Total CPU cycles used: 0
 ```
+**El hilo más cercano a su límite es `console_tid`**.
 
 #### Comparativa Superloop vs. Kernel (Task B)
 
@@ -324,6 +325,26 @@ Jitter máximo en reposo (CH0): $1003.1\ \mu\text{s} - 1000\ \mu\text{s} = 3.1\ 
 <img width="1920" height="369" alt="{8DBD00C5-B092-4E23-B415-D34445C5940E}" src="https://github.com/user-attachments/assets/7188666f-f57f-4c46-95a0-0d0c154a3560" />
 
 Jitter máximo con calib (CH0): $1006.8\ \mu\text{s} - 1000\ \mu\text{s} = 6.8\ \mu\text{s}$
+
+Periodo máximo con calib (CH1) : $10.005\text{ ms}$
+
+#### El costo (Task C)
+
+<img width="1920" height="401" alt="{A4138126-3573-4ACE-BE8E-7B1A24CF7F0C}" src="https://github.com/user-attachments/assets/69d20882-db82-4767-b866-820c80ecda37" />
+
+- **Brecha visible de cambio de contexto:** `6.5 µs` (medido en WaveForms entre la caída de `instr_samp` y la subida de `instr_ctrl`).
+- **Cálculo de sobrecarga (Overhead):** `1100 conmutaciones/s × 6.5 µs = 7150 µs/s (0.715% de carga de CPU)`
+
+#### Tabla A/B: Comparativa Superloop vs. Kernel 
+
+| Medición (ESP32-S3) | Superloop S3 (Semana 3) | Kernel (Hoy) |
+|---|:---:|:---:|
+| **Jitter máx. de muestreo** | 95 079.06 µs | 3.1 µs |
+| **Jitter máx. de muestreo con `calib`** | 495 628.44 µs | 6.8 µs |
+| **Período máx. de control con `calib`** | 1147.23 ms | 10.005 ms |
+| **Latencia ISR → Hilo (`lat_peak_us`)** | — | 8 µs |
+| **Brecha visible de cambio de contexto (Task C)** | — | 6.5 µs |
+| **Consumo máx. de pila del hilo de control** | — | 288 bytes / 1024 asignados |
 
 ## 4. Schedulability analysis
 
