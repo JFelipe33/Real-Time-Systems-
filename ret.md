@@ -281,6 +281,50 @@ setpoint_mv: La escribe main (joystick / consola) y la lee task_control (en main
 
 No falla sin mutexes ya que en un procesador de 32 bits (como el ESP32-S3), leer o escribir una variable de 32 bits alineada en memoria toma un solo ciclo de reloj de hardware. Es una operación atómica natural: el sistema no puede pausar la CPU a "medio camino" de escribir el dato, así que nunca se leen valores corruptos.
 
+### Week 4 — The full migration and the A/B
+
+#### Completar la migracion (Task A)
+
+```text
+status
+p=1502 mV sp=1500 mV duty=46% flow_x100=0 estop=0 batches=0 backlog_peak=0 lat_peak_us=8
+
+threads
+Thread analyze:
+ flow_wq             : STACK: unused  720 usage  304 / 1024 ( 29 %); CPU:   0 %
+                     : Total CPU cycles used: 1096
+ telemetry_tid       : STACK: unused 1296 usage  752 / 2048 ( 36 %); CPU:   0 %
+                     : Total CPU cycles used: 33451108
+ sampling_tid        : STACK: unused 1232 usage  304 / 1536 ( 19 %); CPU:   0 %
+                     : Total CPU cycles used: 1833786319
+ display_tid         : STACK: unused 1344 usage  704 / 2048 ( 34 %); CPU:   0 %
+                     : Total CPU cycles used: 771092000
+ control_tid         : STACK: unused  736 usage  288 / 1024 ( 28 %); CPU:   0 %
+                     : Total CPU cycles used: 226216062
+ console_tid         : STACK: unused 1056 usage  992 / 2048 ( 48 %); CPU:   0 %
+                     : Total CPU cycles used: 359597549
+ sysworkq            : STACK: unused  208 usage  304 /  512 ( 59 %); CPU:   0 %
+                     : Total CPU cycles used: 968
+ idle                : STACK: unused   48 usage  208 /  256 ( 81 %); CPU:  99 %
+                     : Total CPU cycles used: 481479107710
+ ISR0                : STACK: unused   64 usage  448 /  512 ( 87 %); CPU:   0 %
+                     : Total CPU cycles used: 0
+```
+
+#### Comparativa Superloop vs. Kernel (Task B)
+
+* Estadísticas del canal CH0 (instr_samp), captura en reposo ($\ge 30\text{ s}$)
+  
+<img width="1920" height="355" alt="{2E784E46-A8E0-4322-9971-A072597B2F06}" src="https://github.com/user-attachments/assets/cf05a990-553b-4fa5-9d20-56a82759e3c1" />
+
+Jitter máximo en reposo (CH0): $1003.1\ \mu\text{s} - 1000\ \mu\text{s} = 3.1\ \mu\text{s}$
+
+* Estadísticas del canal CH0 (instr_samp) y CH1 (instr_ctrl), captura con calib activo
+
+<img width="1920" height="369" alt="{8DBD00C5-B092-4E23-B415-D34445C5940E}" src="https://github.com/user-attachments/assets/7188666f-f57f-4c46-95a0-0d0c154a3560" />
+
+Jitter máximo con calib (CH0): $1006.8\ \mu\text{s} - 1000\ \mu\text{s} = 6.8\ \mu\text{s}$
+
 ## 4. Schedulability analysis
 
 U = ΣC_i/T_i with **measured** C_i; test used (RM / hyperbolic / EDF); RTA as a
