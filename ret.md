@@ -31,9 +31,17 @@ system shall <response> within <deadline>*) — then the task that implements th
 
 ## 2. ADRs
 
-### ADR-001 — <title>
-**Context:** … · **Decision:** … · **Justification (with numbers):** … · **Status:** …
+### ADR-001 — Adopción de Arquitectura Kernel Multihilo
 
+- **Status**: Aceptado
+- **Context**: En el superloop, al ejecutar el comando `calib` el sistema se congelaba. Esto hacía que el retraso de muestreo subiera a 495628.44 µs y el ciclo de control se estirara a 1147.23 ms, rompiendo los tiempos del sistema.
+- **Decision**: Pasar el código a un kernel con hilos en Zephyr. Las tareas de muestreo y control van en hilos de prioridad alta, el cálculo de flujo en una `k_workqueue` y la consola en un hilo de prioridad baja.
+- **Justification**: Las mediciones tomadas confirman que usar hilos soluciona el problema:
+  - El retraso de muestreo con `calib` activo bajó de 495628.44 µs a solo 6.8 µs.
+  - El tiempo del ciclo de control bajó de 1147.23 ms a 10.005 ms, cumpliendo con la meta de 10 ms.
+  - Pasar de un hilo a otro toma 6.5 µs, usando apenas un 0.715% del procesador.
+  - El hilo con mayor uso de memoria es `console_tid` con el 48% (992 de 2048 bytes), así que no hay riesgo de desborde de memoria.
+    
 ## 3. Evidence by week
 
 ### Week 2 — superloop baseline (C0116-DK)
