@@ -660,10 +660,12 @@ def RTA_test(Gamma):
 
 if __name__ == "__main__":
     node_tasks = [
-        {'name': 'sampling',  'C': 18,   'T': 1000,   'B': 0},
-        {'name': 'control',   'C': 3,    'T': 10000,  'B': 400}, # B_i from k_mutex
-        {'name': 'display',   'C': 24733,'T': 500000, 'B': 0},
-        {'name': 'telemetry', 'C': 6233, 'T': 1000000,'B': 0},
+        {'name': 'sampling',  'C': 18,    'T': 1000,    'B': 0},
+        {'name': 'control',   'C': 3,     'T': 10000,   'B': 400}, # B_i from k_mutex
+        {'name': 'sensor_1',  'C': 2000,  'T': 10000,   'B': 0},   # Daniela Task 1
+        {'name': 'sensor_2',  'C': 5000,  'T': 20000,   'B': 0},   # Daniela Task 2
+        {'name': 'display',   'C': 24733, 'T': 500000,  'B': 0},
+        {'name': 'telemetry', 'C': 6233,  'T': 1000000, 'B': 0},
     ]
     
     verdict = RTA_test(node_tasks)
