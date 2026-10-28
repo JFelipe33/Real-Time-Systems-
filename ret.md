@@ -246,7 +246,7 @@ The higher clock frequency (240 MHz) reduces the minimum and average execution t
 | Max sampling jitter ($\ge 30\text{ s}$ idle) | $22578\ \mu\text{s}$ | $95 079\ \mu\text{s}$ | — |
 | Max sampling jitter (`calib` active) | $437588\ \mu\text{s}$ | $495 628\ \mu\text{s}$ | — |
 | `backlog_peak` (`calib` active) | $440\text{ ticks}$ | $496\text{ ticks}$ | — |
-| **`lat_peak_us` (`status` in console) | — | — | — |
+| `lat_peak_us` (`status` in console) | — | — | — |
 | Max control period (`calib` active) | — | $1147.23\text{ ms}$ | — |
 
 #### The first thread (Task C)
@@ -275,7 +275,7 @@ Maximum jitter at idle and active calib (CH0): $1003.00\ \mu\text{s} - 1000\ \mu
 |---|:---:|:---:|:---:|
 | Max sampling jitter ($\ge 30\text{ s}$ idle) | $22,578\ \mu\text{s}$ | $95,079\ \mu\text{s}$ | $3.00\ \mu\text{s}$ |
 | Max sampling jitter (active `calib`) | $437,588\ \mu\text{s}$ | $495,628\ \mu\text{s}$ | $3.00\ \mu\text{s}$ |
-| `backlog_peak` (active `calib`)** | $440\text{ ticks}$ | $496\text{ ticks}$ | $0\text{ ticks}$ |
+| `backlog_peak` (active `calib`) | $440\text{ ticks}$ | $496\text{ ticks}$ | $0\text{ ticks}$ |
 | `lat_peak_us` (`status` in console) | — | — | $7\ \mu\text{s}$ |
 | Max control period (active `calib`) | — | $1147.23\text{ ms}$ | $400.57\text{ ms}$ |
 
