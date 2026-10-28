@@ -630,7 +630,7 @@ Both sufficient tests pass cleanly.
 To bound the worst-case response time ($R_i$) incorporating priority inheritance blocking ($B_i = 400\text{ µs}$ from Task B), we apply the iterative formula matching Buttazzo Fig. 4.17:
 $$R_i^{(k+1)} = C_i + B_i + \sum_{h < i} \left\lceil \frac{R_i^{(k)}}{T_h} \right\rceil C_h$$
 
-#### Python Script Implementation (`scripts/rta.py`)
+#### Python Script Implementation
 
 ```python
 import math
