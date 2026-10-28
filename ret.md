@@ -60,69 +60,67 @@ system shall <response> within <deadline>*) — then the task that implements th
 
 ### Week 2 — superloop baseline (C0116-DK)
 
-#### Diagrama de flujo (Task A)
+#### Flowchart (Task A)
 
 ```mermaid
 flowchart TD
     subgraph ISR["ISR Flags"]
         direction TB
-        isr_info["• <b>Timer ISR:</b> incrementa <code>ticks_pending</code> cada 1 ms<br/>• <b>Flow ISR:</b> incrementa <code>flow_pulses</code> por cada pulso"]
+        isr_info["• <b>Timer ISR:</b> increments <code>ticks_pending</code> every 1 ms<br/>• <b>Flow ISR:</b> increments <code>flow_pulses</code> per pulse"]
     end
 
-    init["<b>Inicialización</b><br/><code>init_hw()</code> configura GPIOs, ADC e interrupción de flujo.<br/>Se inicia el timer de 1 ms y comienza el <code>while(1)</code>."]
+    init["<b>Initialization</b><br/><code>init_hw()</code> configures GPIOs, ADC, and flow interrupt.<br/>Starts the 1 ms timer and enters <code>while(1)</code>."]
     
-    polled["<b>Polled work</b><br/><code>task_console()</code>: <code>instr_cons</code> = 1 al procesar → 0 al terminar<br/><code>task_display()</code>: <code>instr_disp</code> = 1 al redibujar → 0 al terminar<br/><code>task_telemetry()</code>: <code>instr_tele</code> = 1 al transmitir → 0 al terminar"]
+    polled["<b>Polled work</b><br/><code>task_console()</code>: <code>instr_cons</code> = 1 when processing → 0 when done<br/><code>task_display()</code>: <code>instr_disp</code> = 1 when redrawing → 0 when done<br/><code>task_telemetry()</code>: <code>instr_tele</code> = 1 when transmitting → 0 when done"]
     
-    tick{"¿<code>ticks_pending</code> > 0?"}
+    tick{"Is <code>ticks_pending</code> > 0?"}
     
-    sample["<b>Sampling / Control</b><br/>Se consume 1 tick → <code>task_sampling()</code><br/><code>instr_samp</code>: 1 al entrar → 0 al salir<br/>Cada 10 muestras → <code>task_control()</code><br/><code>instr_ctrl</code>: 1 al entrar → 0 al salir"]
+    sample["<b>Sampling / Control</b><br/>1 tick consumed → <code>task_sampling()</code><br/><code>instr_samp</code>: 1 on entry → 0 on exit<br/>Every 10 samples → <code>task_control()</code><br/><code>instr_ctrl</code>: 1 on entry → 0 on exit"]
     
-    flow["<b>Polled work: Flow</b><br/><code>task_flow_batch()</code> comprueba: <code>flow_pulses >= 100</code><br/>Si cumple: <code>instr_flow</code> = 1 al entrar → 0 al terminar el cálculo"]
+    flow["<b>Polled work: Flow</b><br/><code>task_flow_batch()</code> checks: <code>flow_pulses >= 100</code><br/>If met: <code>instr_flow</code> = 1 on entry → 0 when calculation finishes"]
 
     ISR --> init
     init --> polled
     polled --> tick
-    tick -- Sí --> sample
+    tick -- Yes --> sample
     tick -- No --> flow
     sample --> flow
     flow --> polled
 ```
 
-#### Captura base: cache ON (Task B)
+#### Baseline capture: cache ON (Task B)
 
 <img width="1600" height="850" alt="logic2" src="https://github.com/user-attachments/assets/05bd9e11-39a0-439b-b4e7-e639f78e2170" />
 
-Jitter máximo cache ON (CH0): $23577.75\ \mu\text{s} - 1000\ \mu\text{s} = 22578\ \mu\text{s}$ 
+Max jitter cache ON (CH0): $23577.75\ \mu\text{s} - 1000\ \mu\text{s} = 22578\ \mu\text{s}$
 
-##### Estadísticas de periodo del canal CH0 (`instr_samp`), captura de 30 s
+##### Channel CH0 (`instr_samp`) period statistics, 30 s capture
 
-| Parámetro | Valor | Parámetro | Valor |
+| Parameter | Value | Parameter | Value |
 | :--- | :--- | :--- | :--- |
 | $\Delta T$ | $30.087168\text{ s}$ | $N_{\text{falling}}$ | $30198$ |
 | $N_{\text{rising}}$ | $30198$ | $f_{\text{min}}$ | $42.413\text{ Hz}$ |
 | $f_{\text{max}}$ | $61776.062\text{ Hz}$ | $f_{\text{mean}}$ | $1003.981\text{ Hz}$ |
 | $T_{\text{std}}$ | $1.0454\text{ ms}$ | Min | $16.19\ \mu\text{s}$ |
-| **Mean** | **$996.03\ \mu\text{s}$** | Freq | $1003.981\text{ Hz}$ |
-| SDev | $1045.42\ \mu\text{s}$ | **Max** | **$23577.75\ \mu\text{s}$** |
+| Mean | $996.03\ \mu\text{s}$ | Freq | $1003.981\text{ Hz}$ |
+| SDev | $1045.42\ \mu\text{s}$ | Max | $23577.75\ \mu\text{s}$ |
 | Count | $30197$ | | |
 
 <img width="1600" height="850" alt="logic4" src="https://github.com/user-attachments/assets/8659115a-4b3f-4c05-ae9e-d697fdeb1cd2" />
 
-Latencia ISR = $\Delta t$ entre flancos de CH0 y CH4
-
----
+ISR latency = $\Delta t$ between edges of CH0 and CH4
 
 #### Rebuild cache OFF (Task B)
 
 <img width="1600" height="950" alt="logic6" src="https://github.com/user-attachments/assets/abf8d943-f690-4099-8494-55bc11ffcbd3" />
 
-Jitter máximo cache OFF (CH0): $25239\ \mu\text{s} - 1000\ \mu\text{s} = 24239\ \mu\text{s}$ 
+Maximum jitter cache OFF (CH0): $25239\ \mu\text{s} - 1000\ \mu\text{s} = 24239\ \mu\text{s}$ 
 
-#### calib activo (Task C)
+#### Active calib (Task C)
 
 <img width="1600" height="950" alt="logic7" src="https://github.com/user-attachments/assets/55df2670-c7d8-451a-96c7-6f80ee65e436" />
 
-Jitter máximo calib activo (CH0): $438588.31\ \mu\text{s} - 1000\ \mu\text{s} = 437588\ \mu\text{s}$ 
+Maximum jitter with active calib (CH0): $438588.31\ \mu\text{s} - 1000\ \mu\text{s} = 437588\ \mu\text{s}$ 
 
 ```text
 t=23000 ... backlog=30
@@ -136,40 +134,38 @@ p=1489 mV sp=1500 mV duty=45% flow_x100=0 estop=0
 batches=0 backlog_peak=440
 ```
 
-##### Estadísticas de periodo del canal CH0 (`instr_samp`), captura con `calib` activo
+##### Period statistics for channel CH0 (`instr_samp`), capture with `calib` active
 
-| Parámetro | Valor | Parámetro | Valor |
+| Parameter | Value | Parameter | Value |
 | :--- | :--- | :--- | :--- |
 | $\Delta T$ | $20.015616\text{ s}$ | $N_{\text{falling}}$ | $20088$ |
 | $N_{\text{rising}}$ | $20088$ | $f_{\text{min}}$ | $2.280\text{ Hz}$ |
 | $f_{\text{max}}$ | $42553.191\text{ Hz}$ | $f_{\text{mean}}$ | $1003.635\text{ Hz}$ |
 | $T_{\text{std}}$ | $3.2828\text{ ms}$ | Min | $23.50\ \mu\text{s}$ |
-| **Mean** | **$996.38\ \mu\text{s}$** | Freq | $1003.635\text{ Hz}$ |
-| SDev | $3282.80\ \mu\text{s}$ | **Max** | **$438588.31\ \mu\text{s}$** |
+| Mean | $996.38\ \mu\text{s}$ | Freq | $1003.635\text{ Hz}$ |
+| SDev | $3282.80\ \mu\text{s}$ | Max | $438588.31\ \mu\text{s}$ |
 | Count | $20087$ | | |
 
-La tarea que sufre es `task_sampling()` (y por extensión `task_control()`, que depende de ella): mientras `cmd_calib()` ejecuta sus 1000 rondas de `k_busy_wait(400)` dentro de `task_console()` (`main.c`, función `cmd_calib`), el `while(1)` del superloop no vuelve a pasar por el bloque que drena `ticks_pending`, así que los 1 kHz ticks generados por `tick_isr()` se acumulan sin ser atendidos. La causa raíz no es la interrupción, sino que el superloop no tiene forma de interrumpir una tarea polled a media ejecución: `calib` es bloqueante y monopoliza el único hilo de ejecución hasta terminar sus 1000 rondas ($\approx 400\ \mu\text{s} \times 1000 \approx 400\text{ ms}$ sólo en `k_busy_wait`, que coincide con los $\approx 437\text{ ms}$ medidos).
+The task that suffers is `task_sampling()` (and by extension `task_control()`, which depends on it): while `cmd_calib()` executes its 1000 rounds of `k_busy_wait(400)` inside `task_console()` (`main.c`, `cmd_calib` function), the superloop's `while(1)` does not pass through the block that drains `ticks_pending` again, so the 1 kHz ticks generated by `tick_isr()` accumulate without being serviced. The root cause is not the interrupt, but that the superloop has no way to interrupt a polled task mid-execution: `calib` is blocking and monopolizes the single execution thread until it finishes its 1000 rounds ($\approx 400\ \mu\text{s} \times 1000 \approx 400\text{ ms}$ in `k_busy_wait` alone, which matches the $\approx 437\text{ ms}$ measured).
 
-#### Mediciones del superloop
+#### Superloop measurements
 
-| Medición | Mi valor | Referencia |
+| Measurement | My value | Reference |
 | :--- | :---: | :--- |
-| **Período real de muestreo (nominal 1 kHz): promedio** | $996.03\ \mu\text{s}$ | $1000\ \mu\text{s}$ |
-| **Jitter de muestreo: máximo durante $\ge 30$ s** | $22578\ \mu\text{s}$ | Registrar el valor obtenido; es la referencia del curso |
-| **Latencia ISR $\rightarrow$ atención del superloop (pulso de flujo)** | $14.5\ \mu\text{s}$ | Valor medido en el analizador lógico |
-| **Jitter de muestreo máximo con la caché de Flash desactivada** | $24239\ \mu\text{s}$ | La diferencia respecto al jitter base corresponde al acelerador ART |
-| **Jitter de muestreo con el comando bloqueante activo** | $437588\ \mu\text{s}$ | Comparar con el jitter base |
-| **`backlog_peak`, en reposo $\rightarrow$ durante el comando bloqueante** | $30 \rightarrow 440$ ticks | Misma situación, medida por el firmware |
-
----
+| Actual sampling period (nominal 1 kHz): average | $996.03\ \mu\text{s}$ | $1000\ \mu\text{s}$ |
+| Sampling jitter: maximum during $\ge 30$ s | $22578\ \mu\text{s}$ | Record the obtained value; it is the reference for the course |
+| ISR latency $\rightarrow$ superloop servicing (flow pulse) | $14.5\ \mu\text{s}$ | Value measured on the logic analyzer |
+| Maximum sampling jitter with Flash cache disabled | $24239\ \mu\text{s}$ | The difference relative to the base jitter corresponds to the ART accelerator |
+| Sampling jitter with active blocking command | $437588\ \mu\text{s}$ | Compare with the base jitter |
+| `backlog_peak`, idle $\rightarrow$ during the blocking command | $30 \rightarrow 440$ ticks | Same situation, measured by the firmware |
 
 ### Week 3 — S3 baseline and silicon comparison
 
-#### Respuesta diff-stat y status (Task A)
+#### diff-stat and status response (Task A)
 
-* La portabilidad del sistema al ESP32-S3 se realizó mediante archivos Devicetree overlay. La salida de git diff confirma que la migración no requirió modificar ninguna línea de código C de la aplicación:
+- System porting to the ESP32-S3 was performed using Devicetree overlay files. The git diff output confirms that the migration did not require modifying any lines of application C code:
 ```text
-samples/rts/firmware/superloop/boards/esp32c6_devkitc_hpcore.overlay        |  60 +++++++++++++++++++++++++++
+samples/rts/firmware/superloop/boards/esp32c6_devkitc_hpcore.overlay         |  60 +++++++++++++++++++++++++++
  .../superloop/boards/esp32c6_devkitc_hpcore.overlay:Zone.Identifier         | Bin 0 -> 25 bytes
  .../rts/firmware/superloop/boards/esp32s3_devkitc_esp32s3_procpu.overlay    |  62 ++++++++++++++++++++++++++++
  samples/rts/firmware/superloop/boards/nucleo_l476rg.overlay                 |  56 +++++++++++++++++++++++++
@@ -178,36 +174,36 @@ samples/rts/firmware/superloop/boards/esp32c6_devkitc_hpcore.overlay        |  6
  samples/rts/firmware/superloop/boards/stm32c0116_dk.overlay:Zone.Identifier | Bin 0 -> 25 bytes
  7 files changed, 258 insertions(+)
 ```
-* la consola serial del ESP32-S3 responde correctamente al comando status, validando el procesamiento de datos y la interacción del firmware:
+* The ESP32-S3 serial console responds correctly to the status command, validating data processing and firmware interaction:
 ```text
  p=1490 mV sp=1500 mV duty=47% flow_x100=102 estop=0 batches=130 backlog_peak=96
 ```
-#### Mediciones y comparación de silicios (Task B)
+#### Measurements and Silicon Comparison (Task B)
 
-* Tiempos de ejecución individuales ($C_i$) en ESP32-S3
+- Individual execution times ($C_i$) on ESP32-S3
 
-| Tarea | Canal | Tiempo de ejecución ($C_i$) medido |
+| Task | Channel | Measured execution time ($C_i$) |
 | :--- | :--- | :--- |
-| Muestreo (`task_sampling`) | CH0 (`instr_samp`) | $2.688\ \mu\text{s}$ |
+| Sampling (`task_sampling`) | CH0 (`instr_samp`) | $2.688\ \mu\text{s}$ |
 | Control (`task_control`) | CH1 (`instr_ctrl`) | $0.312\ \mu\text{s}$ ($312\text{ ns}$) |
-| Consola (`task_console`) | CH2 (`instr_cons`) | $2.188\ \mu\text{s}$ |
-| Telemetría (`task_telemetry`) | CH3 (`instr_tele`) | $64.813\ \mu\text{s}$ |
-| Lote de flujo (`task_flow_batch`) | CH4 (`instr_flow`) | $2.438\ \mu\text{s}$ |
-| Pantalla (`task_display`) | CH5 (`instr_disp`) | $95.578\text{ ms}$ |
+| Console (`task_console`) | CH2 (`instr_cons`) | $2.188\ \mu\text{s}$ |
+| Telemetry (`task_telemetry`) | CH3 (`instr_tele`) | $64.813\ \mu\text{s}$ |
+| Flow batch (`task_flow_batch`) | CH4 (`instr_flow`) | $2.438\ \mu\text{s}$ |
+| Display (`task_display`) | CH5 (`instr_disp`) | $95.578\text{ ms}$ |
 
-* Estadísticas del canal CH0 (instr_samp), captura en reposo ($\ge 30\text{ s}$)
+- Channel CH0 (`instr_samp`) statistics, idle capture ($\ge 30\text{ s}$)
 
 <img width="1600" height="850" alt="s3 1" src="https://github.com/user-attachments/assets/704cf22c-f7ff-40e0-a790-b43ea9357d18" />
 
-Jitter máximo en reposo (CH0): $96079\ \mu\text{s} - 1000\ \mu\text{s} = 95 079\ \mu\text{s}$
+Maximum idle jitter (CH0): $96079\ \mu\text{s} - 1000\ \mu\text{s} = 95 079\ \mu\text{s}$
 
-* Estadísticas del canal CH0 (instr_samp), captura con calib activo
+- Channel CH0 (`instr_samp`) statistics, capture with active `calib`
 
 <img width="1600" height="850" alt="s3 2" src="https://github.com/user-attachments/assets/04d03d24-fdf8-4d14-a456-f3775022f041" />
 
-Jitter máximo con calib (CH0): $496628\ \mu\text{s} - 1000\ \mu\text{s} = 495 628\ \mu\text{s}$
+Maximum jitter with `calib` (CH0): $496628\ \mu\text{s} - 1000\ \mu\text{s} = 495 628\ \mu\text{s}$
 
-* Registro de consola serial durante la calib
+- Serial console log during `calib`
 
 ```text
 t=55000 p_mv=1480 sp_mv=1500 duty=46 flow_x100=102 estop=0 backlog=96
@@ -218,12 +214,12 @@ calibrating zero-flow offset (1000 rounds)...
 calibration done
 t=62000 p_mv=1536 sp_mv=1500 duty=44 flow_x100=102 estop=0 backlog=496
 status
-p=1488 mV sp=1500 mV duty=46% flow_x100=102 estop=0 batches=661 backlog_peak=496 
+p=1488 mV sp=1500 mV duty=46% flow_x100=102 estop=0 batches=661 backlog_peak=496
 ```
 
-* Estadísticas del canal CH1 (instr_ctrl), calib activo
+- Channel CH1 (instr_ctrl) statistics, active calib
 
-| Parámetro | Valor | Parámetro | Valor |
+| Parameter | Value | Parameter | Value |
 | :--- | :--- | :--- | :--- |
 | $\Delta T$ | $16.573440\text{ s}$ | $N_{\text{falling}}$ | $41$ |
 | $N_{\text{rising}}$ | $41$ | $f_{\text{min}}$ | $0.872\text{ Hz}$ |
@@ -233,29 +229,29 @@ p=1488 mV sp=1500 mV duty=46% flow_x100=102 estop=0 batches=661 backlog_peak=496
 | SDev | $321.36\text{ ms}$ | Max | $1.147232\text{ s}$ ($1147.23\text{ ms}$) |
 | Count | $40$ | | |
 
-* Preguntas
+- Questions
 
-**pregunta 1**:  El tiempo máximo en reposo cambió mucho entre chips. Al comparar `instr_tele` en ambas capturas, ¿qué diferencia de hardware lo explica? (`uart_stm32_poll_out` vs. `uart_esp32_poll_out`)
+**Question 1**: The maximum idle time changed significantly between chips. When comparing `instr_tele` in both captures, what hardware difference explains it? (`uart_stm32_poll_out` vs. `uart_esp32_poll_out`)
 
-El driver del STM32 (`uart_stm32_poll_out`) realiza una espera activa bloqueando la CPU por cada carácter transmitido, mientras que el del ESP32-S3 (`uart_esp32_poll_out`) deposita los datos de inmediato en la FIFO de hardware y retorna sin bloquear la ejecución.
+The STM32 driver (`uart_stm32_poll_out`) performs a busy wait blocking the CPU for each transmitted character, whereas the ESP32-S3 driver (`uart_esp32_poll_out`) immediately deposits the data into the hardware FIFO and returns without blocking execution.
 
-**pregunta 2** : El S3 corre a 240 MHz frente a los 80 MHz del L476, pero ejecuta desde una Flash SPI externa mediante caché. ¿En qué parte del RET se reflejan el reloj y la caché?
+**Question 2**: The S3 runs at 240 MHz compared to the 80 MHz of the L476, but executes from external SPI Flash via cache. In which part of the RET are the clock and cache reflected?
 
-La mayor frecuencia de reloj (240 MHz) reduce los tiempos mínimos y promedio de ejecución ($C_i$), mientras que la latencia y los fallos de la memoria caché externa provocan los picos máximos ($T_{\text{máx}}$) y el incremento del Jitter.
+The higher clock frequency (240 MHz) reduces the minimum and average execution times ($C_i$), while the latency and misses of the external cache memory cause the maximum peaks ($T_{\text{max}}$) and the increase in jitter.
 
-* Tabla Comparativa de Resultados entre Silicios
+- Silicon Comparison Results Table
 
-| Medición | L476RG Superloop (Semana 2) | ESP32-S3 Superloop | ESP32-S3 + Sampling Thread (Task C) |
+| Measurement | L476RG Superloop (Week 2) | ESP32-S3 Superloop | ESP32-S3 + Sampling Thread (Task C) |
 |---|:---:|:---:|:---:|
-| **Jitter máx. muestreo ($\ge 30\text{ s}$ reposo)** | $22578\ \mu\text{s}$ | $95 079\ \mu\text{s}$ | — |
-| **Jitter máx. muestreo (`calib` activo)** | $437588\ \mu\text{s}$ | $495 628\ \mu\text{s}$ | — |
-| **`backlog_peak` (`calib` activo)** | $440\text{ ticks}$ | $496\text{ ticks}$ | — |
-| **`lat_peak_us` (`status` en consola)** | — | — | — |
-| **Período máx. control (`calib` activo)** | — | $1147.23\text{ ms}$ | — |
+| Max sampling jitter ($\ge 30\text{ s}$ idle) | $22578\ \mu\text{s}$ | $95 079\ \mu\text{s}$ | — |
+| Max sampling jitter (`calib` active) | $437588\ \mu\text{s}$ | $495 628\ \mu\text{s}$ | — |
+| `backlog_peak` (`calib` active) | $440\text{ ticks}$ | $496\text{ ticks}$ | — |
+| **`lat_peak_us` (`status` in console) | — | — | — |
+| Max control period (`calib` active) | — | $1147.23\text{ ms}$ | — |
 
-#### El primer hilo (Task C)
+#### The first thread (Task C)
 
-* Ejecución del comando status después de crear el hilo
+- Execution of the status command after creating the thread
 
 ```text
 t=2000 p_mv=1504 sp_mv=1500 duty=45 flow_x100=102 estop=0 backlog=0
@@ -263,49 +259,49 @@ status
 p=1497 mV sp=1500 mV duty=45% flow_x100=102 estop=0 batches=55 backlog_peak=0 lat_peak_us=7
 ```
 
-* Estadísticas del canal CH0 (instr_samp), captura con calib activo
+- Channel CH0 (instr_samp) statistics, capture with active calib
 
 <img width="1600" height="850" alt="s3 4" src="https://github.com/user-attachments/assets/d6f4cd41-0165-4fb4-84b3-6e50a1a830ed" />
 
-Jitter máximo en reposo y calib activo (CH0): $1003.00\ \mu\text{s} - 1000\ \mu\text{s} = 3.00\ \mu\text{s}$ 
+Maximum jitter at idle and active calib (CH0): $1003.00\ \mu\text{s} - 1000\ \mu\text{s} = 3.00\ \mu\text{s}$ 
 
-* Estadísticas del canal CH1 (instr_ctrl), calib activo
+- Channel CH1 (instr_ctrl) statistics, active calib
 
 <img width="1600" height="850" alt="s3 3" src="https://github.com/user-attachments/assets/7e12d0de-ee3e-46d9-abea-93f889a01944" />
 
-* Tabla de resultados finales
+- Final results table
 
-| Medición | L476RG Superloop (Semana 2) | ESP32-S3 Superloop | ESP32-S3 + Sampling Thread (Task C) |
+| Measurement | L476RG Superloop (Week 2) | ESP32-S3 Superloop | ESP32-S3 + Sampling Thread (Task C) |
 |---|:---:|:---:|:---:|
-| **Jitter máx. muestreo ($\ge 30\text{ s}$ reposo)** | $22,578\ \mu\text{s}$ | $95,079\ \mu\text{s}$ | $3.00\ \mu\text{s}$ |
-| **Jitter máx. muestreo (`calib` activo)** | $437,588\ \mu\text{s}$ | $495,628\ \mu\text{s}$ | $3.00\ \mu\text{s}$ |
-| **`backlog_peak` (`calib` activo)** | $440\text{ ticks}$ | $496\text{ ticks}$ | $0\text{ ticks}$ |
-| **`lat_peak_us` (`status` en consola)** | — | — | $7\ \mu\text{s}$ |
-| **Período máx. control (`calib` activo)** | — | $1147.23\text{ ms}$ | $400.57\text{ ms}$ |
+| Max sampling jitter ($\ge 30\text{ s}$ idle) | $22,578\ \mu\text{s}$ | $95,079\ \mu\text{s}$ | $3.00\ \mu\text{s}$ |
+| Max sampling jitter (active `calib`) | $437,588\ \mu\text{s}$ | $495,628\ \mu\text{s}$ | $3.00\ \mu\text{s}$ |
+| `backlog_peak` (active `calib`)** | $440\text{ ticks}$ | $496\text{ ticks}$ | $0\text{ ticks}$ |
+| `lat_peak_us` (`status` in console) | — | — | $7\ \mu\text{s}$ |
+| Max control period (active `calib`) | — | $1147.23\text{ ms}$ | $400.57\text{ ms}$ |
 
-* Respuestas a las preguntas del Lab
+- Answers to Lab questions
 
-**Pregunta 1**: ¿El comando calib sigue arruinando el muestreo? ¿Y el control?.
+**Question 1**: Does the calib command still ruin sampling? What about control?
 
-Muestreo: No, ya no lo arruina. Como el muestreo corre en un hilo separado de alta prioridad (SAMPLING_PRIO = 2), interrumpe a calib cada milisegundo sin perder ni retrasar ninguna muestra. En la señal se ve impecable a $1\text{ kHz}$
+Sampling: No, it no longer ruins it. Since sampling runs in a separate high-priority thread (SAMPLING_PRIO = 2), it preempts calib every millisecond without losing or delaying any samples. On the signal, it looks flawless at $1\text{ kHz}$.
 
-Control: Sí, se sigue arruinando. La función de control se quedó ejecutando dentro de main(). Cuando se activa calib, el hilo main se queda bloqueado $400\text{ ms}$ sin poder atender el control, haciendo que el período se estire hasta esos $400.57\text{ ms}$.
+Control: Yes, it is still being ruined. The control function remained executing inside main(). When calib is activated, the main thread remains blocked for $400\text{ ms}$ without being able to serve control, causing the period to stretch up to $400.57\text{ ms}$.
 
-**Pregunta 2**: Identifica quién escribe y quién lee las variables compartidas (pressure_mv, estop, setpoint_mv) y explica por qué el código no falla a pesar de no usar mutexes.
+**Question 2**: Identify who writes and who reads the shared variables (pressure_mv, estop, setpoint_mv) and explain why the code does not fail despite not using mutexes.
 
-Quién escribe y lee cada una:
+Who writes and reads each one:
 
-pressure_mv: La escribe sampling_thread y la leen task_control, task_telemetry y la consola (en main).
+pressure_mv: Written by sampling_thread and read by task_control, task_telemetry, and the console (in main).
 
-estop: La escriben sampling_thread y main (joystick / consola); la lee task_control (en main).
+estop: Written by sampling_thread and main (joystick / console); read by task_control (in main).
 
-setpoint_mv: La escribe main (joystick / consola) y la lee task_control (en main).
+setpoint_mv: Written by main (joystick / console) and read by task_control (in main).
 
-No falla sin mutexes ya que en un procesador de 32 bits (como el ESP32-S3), leer o escribir una variable de 32 bits alineada en memoria toma un solo ciclo de reloj de hardware. Es una operación atómica natural: el sistema no puede pausar la CPU a "medio camino" de escribir el dato, así que nunca se leen valores corruptos.
+It does not fail without mutexes because on a 32-bit processor (like the ESP32-S3), reading or writing a memory-aligned 32-bit variable takes a single hardware clock cycle. It is a naturally atomic operation: the system cannot pause the CPU "halfway" through writing the data, so corrupted values are never read.
 
 ### Week 4 — The full migration and the A/B
 
-#### Completar la migración (Task A) y Apilar marcas de marea alta (Task D)
+#### Complete migration (Task A) and Stack high-water mark (Task D)
 
 ```text
 status
@@ -332,58 +328,57 @@ Thread analyze:
  ISR0                : STACK: unused   64 usage  448 /  512 ( 87 %); CPU:   0 %
                      : Total CPU cycles used: 0
 ```
-**El hilo más cercano a su límite es `console_tid`**.
+**The thread closest to its limit is `console_tid`**.
 
-#### Comparativa Superloop vs. Kernel (Task B)
+#### Superloop vs. Kernel Comparison (Task B)
 
-* Estadísticas del canal CH0 (instr_samp), captura en reposo ($\ge 30\text{ s}$)
+- Channel CH0 (`instr_samp`) statistics, idle capture ($\ge 30\text{ s}$)
   
 <img width="1920" height="355" alt="{2E784E46-A8E0-4322-9971-A072597B2F06}" src="https://github.com/user-attachments/assets/cf05a990-553b-4fa5-9d20-56a82759e3c1" />
 
-Jitter máximo en reposo (CH0): $1003.1\ \mu\text{s} - 1000\ \mu\text{s} = 3.1\ \mu\text{s}$
+Maximum idle jitter (CH0): $1003.1\ \mu\text{s} - 1000\ \mu\text{s} = 3.1\ \mu\text{s}$
 
-* Estadísticas del canal CH0 (instr_samp) y CH1 (instr_ctrl), captura con calib activo
+- Channel CH0 (`instr_samp`) and CH1 (`instr_ctrl`) statistics, active `calib` capture
 
 <img width="1920" height="369" alt="{8DBD00C5-B092-4E23-B415-D34445C5940E}" src="https://github.com/user-attachments/assets/7188666f-f57f-4c46-95a0-0d0c154a3560" />
 
-Jitter máximo con calib (CH0): $1006.8\ \mu\text{s} - 1000\ \mu\text{s} = 6.8\ \mu\text{s}$
+Maximum jitter with `calib` (CH0): $1006.8\ \mu\text{s} - 1000\ \mu\text{s} = 6.8\ \mu\text{s}$
 
-Periodo máximo con calib (CH1) : $10.005\text{ ms}$
+Maximum period with `calib` (CH1): $10.005\text{ ms}$
 
-#### El costo (Task C)
+#### The Cost (Task C)
 
 <img width="1920" height="401" alt="{A4138126-3573-4ACE-BE8E-7B1A24CF7F0C}" src="https://github.com/user-attachments/assets/69d20882-db82-4767-b866-820c80ecda37" />
 
-- **Brecha visible de cambio de contexto:** `6.5 µs` (medido en WaveForms entre la caída de `instr_samp` y la subida de `instr_ctrl`).
-- **Cálculo de sobrecarga (Overhead):** `1100 conmutaciones/s × 6.5 µs = 7150 µs/s (0.715% de carga de CPU)`
+- **Visible context switch gap:** `6.5 µs` (measured in WaveForms between the falling edge of `instr_samp` and the rising edge of `instr_ctrl`).
+- **Overhead calculation:** `1100 switches/s × 6.5 µs = 7150 µs/s (0.715% CPU load)`
 
-#### Tabla A/B: Comparativa Superloop vs. Kernel 
+#### A/B Table: Superloop vs. Kernel Comparison
 
-| Medición (ESP32-S3) | Superloop S3 (Semana 3) | Kernel (Hoy) |
+| Measurement (ESP32-S3) | Superloop S3 (Week 3) | Kernel (Today) |
 |---|:---:|:---:|
-| **Jitter máx. de muestreo** | 95 079.06 µs | 3.1 µs |
-| **Jitter máx. de muestreo con `calib`** | 495 628.44 µs | 6.8 µs |
-| **Período máx. de control con `calib`** | 1147.23 ms | 10.005 ms |
-| **Latencia ISR → Hilo (`lat_peak_us`)** | — | 8 µs |
-| **Brecha visible de cambio de contexto (Task C)** | — | 6.5 µs |
-| **Consumo máx. de pila del hilo de control** | — | 288 bytes / 1024 asignados |
-
+| Max sampling jitter | 95,079.06 µs | 3.1 µs |
+| Max sampling jitter with `calib` | 495,628.44 µs | 6.8 µs |
+| Max control period with `calib` | 1,147.23 ms | 10.005 ms |
+| ISR → Thread latency (`lat_peak_us`) | — | 8 µs |
+| Visible context switch gap (Task C) | — | 6.5 µs |
+| Max control thread stack usage | — | 288 bytes / 1,024 allocated |
 ### Week 6 — Schedulability, response time and priority inversion
 
 #### Summary of Week 6 Measurements
 
 | Measurement | Prediction | Measured Value | Reference / Observation |
 |---|:---:|:---:|---|
-| **Fig. 4.13 under RM:** Who misses, when? | $\tau_2$ at $t = 7\text{ ms}$ | $\tau_2$ at $t = 7\text{ ms}$ | Pulse extended to 8 ms due to $\tau_1$ preemption at 5 ms. |
-| **Fig. 4.13 under EDF:** Misses in 60 s | 0 misses | 0 misses | $U \approx 0.971 \le 1.0$. All deadlines met continuously. |
-| **Control's max R:** No lock contention | $\approx 2000\text{ µs}$ | $\approx 1800\text{ µs}$ | Nominal periodic execution (10 ms period). |
-| **Control's max R during inversion (`k_sem`)** | Unbounded ($>400\text{ ms}$) | $>400\text{ ms}$ | Severe blocking: `telemetry` preempts `console` holding lock. |
-| **Control's max R with `k_mutex` (PI)** | $\le C + B + \text{interf.}$ | $\approx 2400\text{ µs}$ | Blocking bounded by critical section duration $B$. |
-| **$B$:** Low thread's longest critical section | $400\text{ µs}$ | $400\text{ µs}$ | GPIO pulse width of `calib` critical section. |
-| **`calib` CPU / duration (Before fix)** | $400\text{ ms} / 400\text{ ms}$ | $400\text{ ms} / 400\text{ ms}$ | `k_busy_wait(400)` burns 100% CPU. |
-| **`calib` CPU / duration (After fix)** | $\approx 2\text{ ms} / 400\text{ ms}$ | $\approx 2\text{ ms} / 400\text{ ms}$ | `k_usleep(400)` yields CPU to kernel during sleep. |
-| **E-stop: detection $\rightarrow$ valve low (Before)** | $\le 12\text{ ms}$ | $2.002\text{ ms}$ | Detected at 1 kHz, but actuation waited for `control_thread`. |
-| **E-stop: detection $\rightarrow$ valve low (After)** | $< 1\text{ ms}$ | $349.888\text{ ns}$ | Direct `duty_pct = 0` assignment in sampling job. |
+| Fig. 4.13 under RM: Who misses, when? | $\tau_2$ at $t = 7\text{ ms}$ | $\tau_2$ at $t = 7\text{ ms}$ | Pulse extended to 8 ms due to $\tau_1$ preemption at 5 ms. |
+| Fig. 4.13 under EDF: Misses in 60 s | 0 misses | 0 misses | $U \approx 0.971 \le 1.0$. All deadlines met continuously. |
+| Control's max R: No lock contention | $\approx 2000\text{ µs}$ | $\approx 1800\text{ µs}$ | Nominal periodic execution (10 ms period). |
+| Control's max R during inversion (`k_sem`) | Unbounded ($>400\text{ ms}$) | $>400\text{ ms}$ | Severe blocking: `telemetry` preempts `console` holding lock. |
+| Control's max R with `k_mutex` (PI) | $\le C + B + \text{interf.}$ | $\approx 2400\text{ µs}$ | Blocking bounded by critical section duration $B$. |
+| $B$: Low thread's longest critical section | $400\text{ µs}$ | $400\text{ µs}$ | GPIO pulse width of `calib` critical section. |
+| `calib` CPU / duration (Before fix) | $400\text{ ms} / 400\text{ ms}$ | $400\text{ ms} / 400\text{ ms}$ | `k_busy_wait(400)` burns 100% CPU. |
+| `calib` CPU / duration (After fix) | $\approx 2\text{ ms} / 400\text{ ms}$ | $\approx 2\text{ ms} / 400\text{ ms}$ | `k_usleep(400)` yields CPU to kernel during sleep. |
+| E-stop: detection $\rightarrow$ valve low (Before) | $\le 12\text{ ms}$ | $2.002\text{ ms}$ | Detected at 1 kHz, but actuation waited for `control_thread`. |
+| E-stop: detection $\rightarrow$ valve low (After) | $< 1\text{ ms}$ | $349.888\text{ ns}$ | Direct `duty_pct = 0` assignment in sampling job. |
 
 #### Task A — Fig. 4.13 Live (RM vs. EDF)
 
@@ -600,15 +595,15 @@ Using the worst-case execution times ($C_i$) measured on the ESP32-S3 (RET §1):
 | `control` | $2.438\text{ µs}$ | $10,000\text{ µs}$ | $0.00024$ |
 | `telemetry` | $6,233.25\text{ µs}$ | $1,000,000\text{ µs}$ | $0.00623$ |
 | `display` | $24,733.06\text{ µs}$ | $500,000\text{ µs}$ | $0.04947$ |
-| **Total Base Utilization ($U_{base}$)** | — | — | **$0.07319$ ($7.32\%$)** |
+| Total Base Utilization ($U_{base}$) | — | — | $0.07319$ ($7.32\%$) |
 
 ---
 
 ### 4.2 Daniela's Sensor Load Evaluation
 
 Daniela proposes adding two new periodic sensors ($\tau_{s1}$ and $\tau_{s2}$) to the node:
-* **Sensor 1 ($\tau_{s1}$):** $C_{s1} = 2.0\text{ ms}$, $T_{s1} = 10\text{ ms} \implies U_{s1} = 0.20$
-* **Sensor 2 ($\tau_{s2}$):** $C_{s2} = 5.0\text{ ms}$, $T_{s2} = 20\text{ ms} \implies U_{s2} = 0.25$
+* Sensor 1 ($\tau_{s1}$): $C_{s1} = 2.0\text{ ms}$, $T_{s1} = 10\text{ ms} \implies U_{s1} = 0.20$
+* Sensor 2 ($\tau_{s2}$): $C_{s2} = 5.0\text{ ms}$, $T_{s2} = 20\text{ ms} \implies U_{s2} = 0.25$
 
 New total system utilization:
 $$U_{new} = U_{base} + U_{s1} + U_{s2} = 0.07319 + 0.20 + 0.25 = 0.52319 \quad (52.32\%)$$
@@ -678,7 +673,7 @@ if __name__ == "__main__":
 #### RTA Analysis Output & Answers
 
 1. **Does RTA bound rows 3 and 5 of the measurement table?**
-   **Yes.** RTA calculates the absolute theoretical upper bound ($R_{control} \approx 421\text{ µs}$). The empirical logic analyzer measurements without contention ($\approx 1.8\text{ µs}$) and under `k_mutex` blocking ($\approx 402\text{ µs}$) land strictly below the RTA upper bound.
+   Yes. RTA calculates the absolute theoretical upper bound ($R_{control} \approx 421\text{ µs}$). The empirical logic analyzer measurements without contention ($\approx 1.8\text{ µs}$) and under `k_mutex` blocking ($\approx 402\text{ µs}$) land strictly below the RTA upper bound.
 
 2. **Why does a 30 s capture land below theoretical RTA?**
    RTA assumes the critical instant (where every higher-priority task releases at the exact same microsecond as the analyzed task). A 30-second logic analyzer trace rarely captures this worst-case phase alignment.
@@ -688,14 +683,14 @@ if __name__ == "__main__":
 ### 4.4 Analysis of ADR-005 Fixes (`calib` Fit & E-Stop Path)
 
 #### 1. REQ-CONS-01: `calib` Fit Analysis
-* **Before Fix (`k_busy_wait`):** Tasks above `console_thread` consume $7.32\%$ of CPU time, leaving $\approx 926.8\text{ ms}$ of unallocated CPU per second. However, `cmd_calib()` required $1000 \times 400\text{ µs} = 400\text{ ms}$ of pure busy-spinning CPU time in a single burst, monopolizing the CPU at the lowest priority level and starving other background tasks.
-* **After Fix (`k_usleep`):** Changing `k_busy_wait(400)` to `k_usleep(400)` yields the CPU to the kernel during the $400\text{ µs}$ sensor settling window. Actual CPU compute time per round drops to $\approx 2\text{ µs}$. The total CPU time for 1,000 rounds drops from $400\text{ ms}$ to $\approx 2\text{ ms}$, easily fitting within the 1-second deadline.
+* Before Fix (`k_busy_wait`): Tasks above `console_thread` consume $7.32\%$ of CPU time, leaving $\approx 926.8\text{ ms}$ of unallocated CPU per second. However, `cmd_calib()` required $1000 \times 400\text{ µs} = 400\text{ ms}$ of pure busy-spinning CPU time in a single burst, monopolizing the CPU at the lowest priority level and starving other background tasks.
+* After Fix (`k_usleep`): Changing `k_busy_wait(400)` to `k_usleep(400)` yields the CPU to the kernel during the $400\text{ µs}$ sensor settling window. Actual CPU compute time per round drops to $\approx 2\text{ µs}$. The total CPU time for 1,000 rounds drops from $400\text{ ms}$ to $\approx 2\text{ ms}$, easily fitting within the 1-second deadline.
 
 #### 2. REQ-ESTOP-01: E-Stop Latency Path Sum
-* **Before Fix (Uncoupled Path):**
+* Before Fix (Uncoupled Path):
   $$T_{estop\_before} = T_{samp\_period} + T_{ctrl\_period} + T_{pwm\_step} \approx 1\text{ ms} + 10\text{ ms} + 1\text{ ms} = 12\text{ ms}$$
   The worst-case response exceeded the $5\text{ ms}$ deadline requirement (`REQ-CTRL-02`), measured empirically at $2.002\text{ ms}$.
-* **After Fix (Immediate Actuation in ADR-005):**
+* After Fix (Immediate Actuation in ADR-005):
   $$T_{estop\_after} = C_{sampling} \approx 349.888\text{ ns}$$
   By forcing `duty_pct = 0` directly within `task_sampling()`, actuation occurs immediately in the same 1 kHz job, easily meeting the $5\text{ ms}$ requirement.
 
