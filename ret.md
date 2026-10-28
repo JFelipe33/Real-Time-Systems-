@@ -363,6 +363,7 @@ Maximum period with `calib` (CH1): $10.005\text{ ms}$
 | ISR → Thread latency (`lat_peak_us`) | — | 8 µs |
 | Visible context switch gap (Task C) | — | 6.5 µs |
 | Max control thread stack usage | — | 288 bytes / 1,024 allocated |
+
 ### Week 6 — Schedulability, response time and priority inversion
 
 #### Summary of Week 6 Measurements
